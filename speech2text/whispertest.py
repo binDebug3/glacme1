@@ -172,5 +172,6 @@ def whisper_testing():
 
 
 if __name__ == "__main__":
+    # bro this totally works!
     main()
     # whisper_testing()
