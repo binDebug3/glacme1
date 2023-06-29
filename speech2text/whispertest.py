@@ -1,7 +1,6 @@
-import whisper
+import time
+
 from pocketsphinx import LiveSpeech
-
-
 
 import argparse
 import io
@@ -16,8 +15,11 @@ from tempfile import NamedTemporaryFile
 from time import sleep
 from sys import platform
 
+from display import *
+
 
 def main():
+    # Create an argument parser to handle command line arguments.----------------------------------
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="base", help="Model to use",
                         choices=["tiny", "base", "small", "medium", "large"])
@@ -27,7 +29,7 @@ def main():
                         help="Energy level for mic to detect.", type=int)
     parser.add_argument("--record_timeout", default=2,
                         help="How real time the recording is in seconds.", type=float)
-    parser.add_argument("--phrase_timeout", default=3,
+    parser.add_argument("--phrase_timeout", default=2,
                         help="How much empty space between recordings before we "
                              "consider it a new line in the transcription.", type=float)
     if 'linux' in platform:
@@ -36,6 +38,9 @@ def main():
                                  "Run this with 'list' to view available Microphones.", type=str)
     args = parser.parse_args()
 
+
+
+    # initialize microphone objects ---------------------------------------------------------------
     # The last time a recording was retrieved from the queue.
     phrase_time = None
     # Current raw audio bytes.
@@ -66,7 +71,10 @@ def main():
     else:
         source = sr.Microphone(sample_rate=16000)
 
-    # Load / Download model
+
+
+
+    # Load / Download model -----------------------------------------------------------------------
     model = args.model
     if args.model != "large" and not args.non_english:
         model = model + ".en"
@@ -81,6 +89,10 @@ def main():
     with source:
         recorder.adjust_for_ambient_noise(source)
 
+
+
+
+    # Listening ----------------------------------------------------------------------------------
     def record_callback(_, audio: sr.AudioData) -> None:
         """
         Threaded callback function to receive audio data when recordings finish.
@@ -97,7 +109,12 @@ def main():
     # Cue the user that we're ready to go.
     print("Model loaded.\n")
 
+
+
+
+    # Main loop ----------------------------------------------------------------------------------
     while True:
+        start = time.perf_counter()
         try:
             now = datetime.utcnow()
             # Pull raw recorded audio from the queue.
@@ -120,6 +137,16 @@ def main():
                 audio_data = sr.AudioData(last_sample, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
                 wav_data = io.BytesIO(audio_data.get_wav_data())
 
+                """ -------------------------------------- INSERTED CODE HERE --------------------------------------"""
+                # fun fact it works but it breaks whisper so just comment it out
+
+                # visualize_audio(wav_data)
+                print(get_audio_duration(wav_data))
+                visualize_audio(wav_data)
+                play_audio(wav_data)
+
+                """ -------------------------------------- INSERTED CODE HERE --------------------------------------"""
+
                 # Write wav data to the temporary file as bytes.
                 with open(temp_file, 'w+b') as f:
                     f.write(wav_data.read())
@@ -139,6 +166,7 @@ def main():
                 os.system('cls' if os.name == 'nt' else 'clear')
                 for line in transcription:
                     print(line)
+                print(f"[{round(time.perf_counter() - start, 2)} seconds behind]")
                 # Flush stdout.
                 print('', end='', flush=True)
 
@@ -153,6 +181,9 @@ def main():
 
 
 
+
+
+# first attempt testing ---------------------------------------------------------------------------
 def whisper_test():
     model = whisper.load_model("base")
     try:
@@ -162,16 +193,18 @@ def whisper_test():
 
     print(result["text"])
 
-
 def whisper_testing():
     for phrase in LiveSpeech():
         print(phrase)
+
+
+def playground():
+    start = time.perf_counter()
 
 
 
 
 
 if __name__ == "__main__":
-    # bro this totally works!
     main()
     # whisper_testing()
