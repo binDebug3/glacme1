@@ -16,6 +16,7 @@ from time import sleep
 from sys import platform
 
 from display import *
+from process import *
 
 
 def main():
@@ -27,7 +28,7 @@ def main():
                         help="Don't use the english model.")
     parser.add_argument("--energy_threshold", default=1000,
                         help="Energy level for mic to detect.", type=int)
-    parser.add_argument("--record_timeout", default=2,
+    parser.add_argument("--record_timeout", default=0.5,
                         help="How real time the recording is in seconds.", type=float)
     parser.add_argument("--phrase_timeout", default=2,
                         help="How much empty space between recordings before we "
@@ -137,22 +138,29 @@ def main():
                 audio_data = sr.AudioData(last_sample, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
                 wav_data = io.BytesIO(audio_data.get_wav_data())
 
-                """ -------------------------------------- INSERTED CODE HERE --------------------------------------"""
-                # fun fact it works but it breaks whisper so just comment it out
-
-                # visualize_audio(wav_data)
-                print(get_audio_duration(wav_data))
-                visualize_audio(wav_data)
-                play_audio(wav_data)
-
-                """ -------------------------------------- INSERTED CODE HERE --------------------------------------"""
-
                 # Write wav data to the temporary file as bytes.
                 with open(temp_file, 'w+b') as f:
                     f.write(wav_data.read())
 
+
+
+
+                """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
+
+                print(get_audio_duration(temp_file))
+                visualize_audio(temp_file)
+                start_dur, end_dur = remove_silence(temp_file, 0.02)
+                print("Start duration: ", start_dur, "-- End duration: ", end_dur)
+                visualize_audio(temp_file)
+                play_audio(temp_file)
+
+                append_to_wav('rolling_audio.wav', temp_file)
+
+                """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
+
+
                 # Read the transcription.
-                result = audio_model.transcribe(temp_file, fp16=torch.cuda.is_available())
+                result = audio_model.transcribe('rolling_audio.wav', fp16=torch.cuda.is_available())
                 text = result['text'].strip()
 
                 # If we detected a pause between recordings, add a new item to our transcription.
