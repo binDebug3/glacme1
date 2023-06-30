@@ -22,7 +22,7 @@ from process import *
 def main():
     # Create an argument parser to handle command line arguments.----------------------------------
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="base", help="Model to use",
+    parser.add_argument("--model", default="tiny", help="Model to use",
                         choices=["tiny", "base", "small", "medium", "large"])
     parser.add_argument("--non_english", action='store_true',
                         help="Don't use the english model.")
@@ -77,7 +77,8 @@ def main():
 
     # Load / Download model -----------------------------------------------------------------------
     model = args.model
-    if args.model != "large" and not args.non_english:
+    # TODO reinsert not english
+    if args.model != "large" and args.non_english:
         model = model + ".en"
     audio_model = whisper.load_model(model)
 
@@ -145,22 +146,30 @@ def main():
 
 
 
-                """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
+                """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE START  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
 
+                speech_window = 'rolling_audio.wav'
                 print(get_audio_duration(temp_file))
-                visualize_audio(temp_file)
-                start_dur, end_dur = remove_silence(temp_file, 0.02)
-                print("Start duration: ", start_dur, "-- End duration: ", end_dur)
-                visualize_audio(temp_file)
-                play_audio(temp_file)
+                # visualize_audio(temp_file)
+                # start_dur, end_dur = remove_silence(temp_file, 0.02)
+                # print("Start duration: ", start_dur, "-- End duration: ", end_dur)
+                # visualize_audio(temp_file)
 
-                append_to_wav('rolling_audio.wav', temp_file)
+                append_to_wav(speech_window, temp_file)
+                # play_audio(speech_window)
+                cut_wav(speech_window, 3)
+                # play_audio(speech_window)
 
-                """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
+
+
+
+                """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE FINISH  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
 
 
                 # Read the transcription.
-                result = audio_model.transcribe('rolling_audio.wav', fp16=torch.cuda.is_available())
+                time_transcribe = time.perf_counter()
+                result = audio_model.transcribe(speech_window, fp16=torch.cuda.is_available())
+                print(f"Transcribed in {round(time.perf_counter() - time_transcribe, 2)} seconds")
                 text = result['text'].strip()
 
                 # If we detected a pause between recordings, add a new item to our transcription.

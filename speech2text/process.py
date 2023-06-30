@@ -1,6 +1,8 @@
 import numpy as np
 import soundfile as sf
 import wave
+from pydub import AudioSegment
+
 import shutil
 import os
 
@@ -32,37 +34,86 @@ def remove_silence(audio_file, energy_threshold):
 
 
 def append_to_wav(existing_file, temp_file):
-    valid = False
-    if os.path.exists(existing_file):
-        if os.path.getsize(existing_file) == 0:
-            os.remove(existing_file)
-        else:
-            valid = True
-            # Open the existing .wav file in read mode
-            existing_audio = wave.open(existing_file, 'rb')
+    infiles = [existing_file, temp_file]
+    outfile = "rolling_audio.wav"
 
-            # Create a new .wav file to append the data
-            params = existing_audio.getparams()
-            appended_file = wave.open('appended.wav', 'wb')
-            appended_file.setparams(params)
+    if not os.path.exists(existing_file):
+        shutil.copy2(temp_file, outfile)
+        return
 
-            # Read the existing audio data and write it to the appended file
-            appended_file.writeframes(existing_audio.readframes(existing_audio.getnframes()))
-            existing_audio.close()
-    if not valid:
-        # Create a new .wav file with the specified file name
-        # TODO doesn't work
-        appended_file = wave.open(existing_file, 'wb')
+    audio_segments = []
+    sample_width = None
+    sample_rate = None
+    num_channels = None
 
-    # Open the temporary .wav file in read mode
-    temp_audio = wave.open(temp_file, 'rb')
-    appended_file.setnchannels(temp_audio.getnchannels())
-    appended_file.writeframes(temp_audio.readframes(temp_audio.getnframes()))
+    for infile in infiles:
+        with wave.open(infile, 'rb') as w:
+            params = w.getparams()
+            frames = w.readframes(w.getnframes())
 
-    # Close the audio files
-    temp_audio.close()
-    appended_file.close()
+            if sample_width is None:
+                sample_width = params.sampwidth
+            if sample_rate is None:
+                sample_rate = params.framerate
+            if num_channels is None:
+                num_channels = params.nchannels
 
-    # Move the appended file to replace the existing file if it existed
-    if os.path.exists(existing_file):
-        shutil.move('rolling_audio.wav', existing_file)
+            # Check if sample rate and number of channels match
+            if (
+                sample_width != params.sampwidth
+                or sample_rate != params.framerate
+                or num_channels != params.nchannels
+            ):
+                print("Sample rate, number of channels, or sample width mismatch. Skipping file:", infile)
+                continue
+
+            audio_segments.append(AudioSegment(
+                data=frames,
+                sample_width=params.sampwidth,
+                frame_rate=params.framerate,
+                channels=params.nchannels
+            ))
+
+    output = audio_segments[0]
+    for i in range(1, len(audio_segments)):
+        output += audio_segments[i]
+
+    output.export(outfile, format="wav")
+
+
+def cut_wav(audiofile, size):
+    if size is None:
+        size = 7  # Default size in seconds
+
+        # Open the input audio file
+    with wave.open(audiofile, 'rb') as audio_file:
+        # Get the sample width, number of channels, and sample rate
+        sample_width = audio_file.getsampwidth()
+        num_channels = audio_file.getnchannels()
+        sample_rate = audio_file.getframerate()
+
+        # Calculate the total number of frames in the audio
+        total_frames = audio_file.getnframes()
+
+        # Calculate the number of frames to keep based on the desired size
+        num_frames = int(size * sample_rate)
+
+        # Calculate the starting frame index for the desired duration
+        start_frame = max(total_frames - num_frames, 0)
+
+        # Set the position in the audio file to the starting frame
+        audio_file.setpos(start_frame)
+
+        # Read the audio data from the starting frame until the end
+        audio_data = audio_file.readframes(total_frames - start_frame)
+
+        # Create a new temporary file with the trimmed audio
+    temp_file = "temp_audio.wav"
+    with wave.open(temp_file, 'wb') as temp_audio:
+        temp_audio.setnchannels(num_channels)
+        temp_audio.setsampwidth(sample_width)
+        temp_audio.setframerate(sample_rate)
+        temp_audio.writeframes(audio_data)
+
+    # Replace the original file with the trimmed audio
+    shutil.move(temp_file, audiofile)
