@@ -28,7 +28,7 @@ def main():
                         help="Don't use the english model.")
     parser.add_argument("--energy_threshold", default=1000,
                         help="Energy level for mic to detect.", type=int)
-    parser.add_argument("--record_timeout", default=0.5,
+    parser.add_argument("--record_timeout", default=1,
                         help="How real time the recording is in seconds.", type=float)
     parser.add_argument("--phrase_timeout", default=2,
                         help="How much empty space between recordings before we "
@@ -161,8 +161,6 @@ def main():
                 # play_audio(speech_window)
 
 
-
-
                 """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE FINISH  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
 
 
@@ -176,16 +174,17 @@ def main():
                 # Otherwise, edit the existing one.
                 if phrase_complete:
                     transcription.append(text)
+                    print(text)
                 else:
                     transcription[-1] = text
 
-                # Clear the console to reprint the updated transcription.
-                os.system('cls' if os.name == 'nt' else 'clear')
-                for line in transcription:
-                    print(line)
-                print(f"[{round(time.perf_counter() - start, 2)} seconds behind]")
-                # Flush stdout.
-                print('', end='', flush=True)
+                # # Clear the console to reprint the updated transcription.
+                # os.system('cls' if os.name == 'nt' else 'clear')
+                # for line in transcription:
+                #     print(line)
+                # print(f"[{round(time.perf_counter() - start, 2)} seconds behind]")
+                # # Flush stdout.
+                # print('', end='', flush=True)
 
                 # Infinite loops are bad for processors, must sleep.
                 sleep(0.25)
