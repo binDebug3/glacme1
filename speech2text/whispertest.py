@@ -17,12 +17,13 @@ from sys import platform
 
 from display import *
 from process import *
+import complete_radar
 
 
 def main():
     # Create an argument parser to handle command line arguments.----------------------------------
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="tiny", help="Model to use",
+    parser.add_argument("--model", default="base", help="Model to use",
                         choices=["tiny", "base", "small", "medium", "large"])
     parser.add_argument("--non_english", action='store_true',
                         help="Don't use the english model.")
@@ -159,6 +160,8 @@ def main():
                 # play_audio(speech_window)
                 cut_wav(speech_window, 3)
                 # play_audio(speech_window)
+
+                # location = complete_radar.radar()
 
 
                 """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE FINISH  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
