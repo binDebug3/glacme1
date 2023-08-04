@@ -161,7 +161,12 @@ def main():
                 cut_wav(speech_window, 3)
                 # play_audio(speech_window)
 
-                # location = complete_radar.radar()
+                # RADAR PATCH
+                audio_array, sample_rate = sf.read(temp_file)
+                m2 = np.array([8, -16])
+                m3 = np.array([-8, -16])
+                location = complete_radar.radar(micro2=m2, micro3=m3, sound1=audio_array, sound2=audio_array, sound3=audio_array)
+                print("Location: ", location)
 
 
                 """  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  INSERTED CODE FINISH  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% """
